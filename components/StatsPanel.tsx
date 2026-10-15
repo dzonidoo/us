@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { type ReactNode, useState } from "react";
 import { porukaLabel } from "@/lib/format";
 import { belgradeParts, dayKey, formatLongDate, formatTime, logicalDay } from "@/lib/day";
 import { DAY_PARTS, type DayCount, type DayPart, type Stats } from "@/lib/stats";
@@ -6,6 +8,12 @@ import { PEOPLE, other } from "@/lib/people";
 import type { Person } from "@/lib/types";
 import { Avatar } from "./app-ui";
 import { DayPartIcon } from "./DayPartIcon";
+
+/**
+ * Cards we haven't decided on yet (per year, longest streak, favourite emoji):
+ * built and computed, just not shown. Flip to true to show them.
+ */
+const SHOW_UNDECIDED_CARDS = false;
 
 const fmt = (n: number) => n.toLocaleString("sr-RS");
 
@@ -254,6 +262,103 @@ function Adore({ adore }: { adore: Stats["adore"] }) {
   );
 }
 
+const shortDate = (d: { year: number; month: number; day: number }) => `${d.day}. ${MONTHS_SHORT[d.month - 1]} ${d.year}.`;
+
+/** Messages per year as bars; tap a bar to read its year. Starts on the busiest year. */
+function PerYear({ years }: { years: Stats["perYear"] }) {
+  const max = Math.max(...years.map((y) => y.count));
+  const [selected, setSelected] = useState(() => years.find((y) => y.count === max)!.year);
+  const current = years.find((y) => y.year === selected)!;
+  const first = years[0].year;
+  const last = years[years.length - 1].year;
+  return (
+    <Card title="Po godinama" className="col-span-2">
+      <div className="mt-3 flex items-baseline justify-between">
+        <span className="font-display text-[28px] italic leading-none">{current.year}</span>
+        <span className="text-[15px] font-semibold tabular-nums">{porukaLabel(current.count)}</span>
+      </div>
+      <div className="mt-4 flex h-32 items-end gap-1.5" role="list">
+        {years.map((y) => (
+          <button
+            key={y.year}
+            type="button"
+            role="listitem"
+            onClick={() => setSelected(y.year)}
+            aria-label={`${y.year}: ${porukaLabel(y.count)}`}
+            aria-pressed={y.year === selected}
+            className="flex h-full flex-1 items-end outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            <span
+              className="w-full rounded-t-[4px] transition-colors"
+              style={{
+                height: `${Math.max((y.count / max) * 100, 2)}%`,
+                background: y.year === selected ? "var(--accent)" : "var(--accent-soft)",
+              }}
+            />
+          </button>
+        ))}
+      </div>
+      <div className="mt-1.5 flex gap-1.5 border-t border-border pt-1.5">
+        {years.map((y) => (
+          <span key={y.year} className={`flex-1 text-center text-[10px] tabular-nums ${y.year === selected ? "font-semibold text-foreground" : "text-muted"}`}>
+            {String(y.year).slice(2)}
+          </span>
+        ))}
+      </div>
+      <p className="mt-2 text-center text-[11px] text-muted">
+        {first}. i {last}. nisu cele godine
+      </p>
+    </Card>
+  );
+}
+
+function LongestStreak({ streak }: { streak: NonNullable<Stats["longestStreak"]> }) {
+  return (
+    <Card title="Najduži niz" className="col-span-2">
+      <div className="mt-3 flex items-center justify-center gap-3">
+        <span className="text-[40px] leading-none" aria-hidden>
+          🔥
+        </span>
+        <div>
+          <div className="font-display text-[44px] italic leading-none tabular-nums">{fmt(streak.days)}</div>
+          <div className="mt-1 text-[13px] text-muted">dana zaredom</div>
+        </div>
+      </div>
+      <p className="mt-3 text-center text-[13px] font-medium">
+        {shortDate(streak.from)} <span className="text-muted">→</span> {shortDate(streak.to)}
+      </p>
+    </Card>
+  );
+}
+
+/**
+ * Counting drops the emoji presentation selector (so ❤ and ❤️ add up); put it
+ * back on single symbols like ❤ so they draw as color emoji, not as text.
+ */
+const asEmoji = (e: string) => ([...e].length === 1 && e.codePointAt(0)! < 0x10000 ? `${e}\uFE0F` : e);
+
+function FavoriteEmoji({ favorites }: { favorites: Stats["favoriteEmoji"] }) {
+  return (
+    <Card title="Omiljeni emoji" className="col-span-2">
+      <div className="mt-3 flex flex-col gap-3">
+        {(["ona", "on"] as const).map((p) => (
+          <div key={p} className="flex items-center gap-3">
+            <PersonMark person={p} size={28} />
+            <div className="grid flex-1 grid-cols-3">
+              {favorites[p].map(({ emoji, count }) => (
+                <div key={emoji} className="flex flex-col items-center">
+                  <span className="text-[26px] leading-none">{asEmoji(emoji)}</span>
+                  <span className="mt-1 text-[11px] text-muted tabular-nums">{fmt(count)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 function BootyCall({ calls }: { calls: Record<Person, number> }) {
   const total = calls.on + calls.ona;
   const caller: Person = calls.on >= calls.ona ? "on" : "ona";
@@ -406,6 +511,13 @@ export function StatsPanel({ stats, viewer }: { stats: Stats; viewer: Person }) 
       <CloseCall title="Veća pričalica" values={stats.words} caption="svih reči" />
       {stats.adore.count > 0 && <Adore adore={stats.adore} />}
       {stats.bootyCalls.on + stats.bootyCalls.ona > 0 && <BootyCall calls={stats.bootyCalls} />}
+      {SHOW_UNDECIDED_CARDS && (
+        <>
+          {stats.perYear.length > 0 && <PerYear years={stats.perYear} />}
+          {stats.longestStreak && <LongestStreak streak={stats.longestStreak} />}
+          {stats.favoriteEmoji.on.length + stats.favoriteEmoji.ona.length > 0 && <FavoriteEmoji favorites={stats.favoriteEmoji} />}
+        </>
+      )}
       {stats.nicknames.on.length + stats.nicknames.ona.length > 0 && <Nicknames nicknames={stats.nicknames} />}
       {stats.firstDay.length > 0 && <FirstDay messages={stats.firstDay} viewer={viewer} />}
     </div>

@@ -2,7 +2,7 @@
 // mock data, and scripts/prepare-data.mjs runs it over the real history at
 // build time (hence the explicit .ts import paths, which Node needs).
 
-import { belgradeParts, dayKey, logicalDay, logicalDayOf } from "./day.ts";
+import { belgradeParts, dayKey, type LogicalDay, logicalDay, logicalDayOf } from "./day.ts";
 import type { Nicknames } from "./nicknames.ts";
 import type { MediaKind, Message, Person } from "./types.ts";
 
@@ -28,6 +28,24 @@ const ADORE_RE = /(?<!\p{L})(?<!(?<!\p{L})ne\s+)obo[zž]a+v+a+m+\s*te+(?!\p{L})/
 // "Booty call": sirens, megaphones, bells and the like, plus 🚒 (our own code).
 // Not ⏰ (a real alarm) and not 🚑.
 const BOOTY_CALL_RE = /🚨|📢|📣|🔊|🔔|🛎|🚓|🚔|🆘|🚒/u;
+
+// Emoji are counted as whole graphemes (so 👍🏻 or ❤️‍🔥 is one), with skin tones and the
+// emoji presentation selector dropped, so ❤ and ❤️ (or 👍 and 👍🏽) count as the same one.
+const graphemes = new Intl.Segmenter("sr", { granularity: "grapheme" });
+const PICTOGRAPH_RE = /\p{Extended_Pictographic}/u;
+const EMOJI_VARIANT_RE = /[\u{1F3FB}-\u{1F3FF}\uFE0F]/gu;
+
+/** For favourites, these all count as one: laughing (shown as 😂). */
+const SAME_EMOJI: Record<string, string> = { "🤣": "😂", "😁": "😂" };
+
+/** Every emoji in a text, normalized. */
+export function emojisIn(text: string): string[] {
+  const out: string[] = [];
+  for (const { segment } of graphemes.segment(text)) {
+    if (PICTOGRAPH_RE.test(segment)) out.push(segment.replace(EMOJI_VARIANT_RE, ""));
+  }
+  return out;
+}
 
 const count = (re: RegExp, text: string) => text.match(re)?.length ?? 0;
 
@@ -58,6 +76,11 @@ export function dayPartOf(hour: number): DayPart {
 
 // --- Stats ---
 
+/** How many of each person's favourite emoji to keep. */
+export const TOP_EMOJI = 3;
+
+export type Streak = { days: number; from: LogicalDay; to: LogicalDay };
+
 export type DayCount = { year: number; month: number; day: number; count: number };
 
 export type Stats = {
@@ -72,6 +95,12 @@ export type Stats = {
   busiestPart: { part: DayPart; share: number } | null;
   /** Logical day (06:00 reset) with the most messages. */
   busiestDay: DayCount | null;
+  /** Messages per year (by logical day), oldest first. */
+  perYear: { year: number; count: number }[];
+  /** Longest run of days in a row (06:00 reset) with at least one message. */
+  longestStreak: Streak | null;
+  /** Each person's most used emoji, most used first (😂 🤣 😁 counted together as 😂). */
+  favoriteEmoji: Record<Person, { emoji: string; count: number }[]>;
   /** Logical day with the most smiling/laughing faces. */
   happiestDay: DayCount | null;
   /** How it started: every message of our first day (06:00 reset). */
@@ -97,8 +126,10 @@ export function computeStats(all: readonly Message[], nicknames: Nicknames = { o
   const firstOfDay = perPerson();
   const dayParts: Record<DayPart, number> = { jutro: 0, dan: 0, vece: 0, noc: 0 };
   const perDay = new Map<string, number>();
+  const perYear = new Map<number, number>();
   const smilesPerDay = new Map<string, number>();
   const bootyCalls = perPerson();
+  const emoji: Record<Person, Map<string, number>> = { on: new Map(), ona: new Map() };
   const adore: Stats["adore"] = { count: 0, first: null };
 
   const sorted = [...all].sort((a, b) => a.ts - b.ts);
@@ -114,9 +145,14 @@ export function computeStats(all: readonly Message[], nicknames: Nicknames = { o
     // Messages are in time order, so the first one we see for a day opens it.
     if (!perDay.has(day)) firstOfDay[m.sender]++;
     perDay.set(day, (perDay.get(day) ?? 0) + 1);
+    perYear.set(d.year, (perYear.get(d.year) ?? 0) + 1);
     const smiles = countSmiles(m.text);
     if (smiles) smilesPerDay.set(day, (smilesPerDay.get(day) ?? 0) + smiles);
     if (isBootyCall(m.text)) bootyCalls[m.sender]++;
+    for (const raw of emojisIn(m.text)) {
+      const e = SAME_EMOJI[raw] ?? raw;
+      emoji[m.sender].set(e, (emoji[m.sender].get(e) ?? 0) + 1);
+    }
     const adores = countAdores(m.text);
     if (adores) {
       adore.count += adores;
@@ -136,6 +172,9 @@ export function computeStats(all: readonly Message[], nicknames: Nicknames = { o
     firstDay: firstDay(sorted),
     busiestPart: busiest && busiest[1] > 0 ? { part: busiest[0], share: busiest[1] / all.length } : null,
     busiestDay: toDayCount(maxEntry(perDay)),
+    perYear: [...perYear].map(([year, n]) => ({ year, count: n })),
+    longestStreak: longestStreak(perDay.keys()),
+    favoriteEmoji: { on: topEmoji(emoji.on), ona: topEmoji(emoji.ona) },
     happiestDay: toDayCount(maxEntry(smilesPerDay)),
     bootyCalls,
     nicknames,
@@ -160,6 +199,37 @@ function firstDay(sorted: readonly Message[]): Stats["firstDay"] {
   }
   return out;
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Longest run of consecutive days, from "YYYY-MM-DD" keys in time order. */
+function longestStreak(days: Iterable<string>): Streak | null {
+  let best: Streak | null = null;
+  let start = 0;
+  let prev = 0;
+  let length = 0;
+  for (const key of days) {
+    const [year, month, day] = key.split("-").map(Number);
+    const t = Date.UTC(year, month - 1, day);
+    length = t - prev === DAY_MS ? length + 1 : 1;
+    if (length === 1) start = t;
+    prev = t;
+    if (length > (best?.days ?? 0)) best = { days: length, from: utcDay(start), to: utcDay(t) };
+  }
+  return best;
+}
+
+const utcDay = (t: number): LogicalDay => {
+  const d = new Date(t);
+  return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() };
+};
+
+/** The most used emoji, most used first; the one used first wins a tie. */
+const topEmoji = (counts: Map<string, number>) =>
+  [...counts]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, TOP_EMOJI)
+    .map(([e, n]) => ({ emoji: e, count: n }));
 
 /** Entry with the highest value; the earliest one wins a tie. */
 function maxEntry<K>(entries: Iterable<[K, number]>): [K, number] | null {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { belgradeTime } from "./day.ts";
-import { computeStats, countAdores, countHearts, countSmiles, countWords, dayPartOf, isBootyCall } from "./stats.ts";
+import { computeStats, countAdores, countHearts, countSmiles, countWords, dayPartOf, emojisIn, isBootyCall } from "./stats.ts";
 import type { Message, Person } from "./types.ts";
 
 const msg = (sender: Person, text: string, [y, mo, d, h, mi]: number[]): Message => ({
@@ -45,6 +45,12 @@ describe("counting", () => {
     assert.ok(isBootyCall("dolazim 🚒🚒🚒"));
     assert.ok(!isBootyCall("⏰ ustaj"));
     assert.ok(!isBootyCall("hitno 🚑"));
+  });
+
+  it("reads emoji as whole symbols, ignoring skin tone and presentation", () => {
+    assert.deepEqual(emojisIn("haha 😂😂 ok 👍🏽 ❤️ ❤"), ["😂", "😂", "👍", "❤", "❤"]);
+    assert.deepEqual(emojisIn("❤️‍🔥 👨‍👩‍👧"), ["❤‍🔥", "👨‍👩‍👧"]);
+    assert.deepEqual(emojisIn("bez emojija :)"), []);
   });
 
   it("splits the day into parts", () => {
@@ -106,6 +112,54 @@ describe("computeStats", () => {
     assert.equal(first[5].text, "Laku noć 😂😂");
   });
 
+  it("counts messages per year, by the day they belong to", () => {
+    const years = computeStats([
+      msg("on", "a", [2020, 12, 31, 23, 0]),
+      msg("ona", "b", [2021, 1, 1, 2, 0]), // New Year's night: still 31 Dec 2020
+      msg("on", "c", [2021, 1, 1, 12, 0]),
+    ]).perYear;
+    assert.deepEqual(years, [
+      { year: 2020, count: 2 },
+      { year: 2021, count: 1 },
+    ]);
+  });
+
+  it("counts 😂, 🤣 and 😁 together as one favourite", () => {
+    const fav = computeStats([msg("on", "😂 🤣🤣 😁 😭", [2021, 1, 1, 12, 0])]).favoriteEmoji.on;
+    assert.deepEqual(fav, [
+      { emoji: "😂", count: 4 },
+      { emoji: "😭", count: 1 },
+    ]);
+  });
+
+  it("finds the longest run of days in a row, with days starting at 06:00", () => {
+    const run = computeStats([
+      msg("on", "a", [2021, 3, 1, 12, 0]),
+      msg("ona", "b", [2021, 3, 3, 12, 0]),
+      msg("on", "c", [2021, 3, 4, 23, 0]),
+      msg("ona", "d", [2021, 3, 5, 2, 0]), // after midnight: still 4 March, adds no day
+      msg("on", "e", [2021, 3, 5, 9, 0]),
+      msg("ona", "f", [2021, 3, 7, 9, 0]),
+    ]).longestStreak;
+    assert.deepEqual(run, {
+      days: 3,
+      from: { year: 2021, month: 3, day: 3 },
+      to: { year: 2021, month: 3, day: 5 },
+    });
+  });
+
+  it("ranks each person's favourite emoji", () => {
+    assert.deepEqual(stats.favoriteEmoji.on, [
+      { emoji: "🚨", count: 3 },
+      { emoji: "😂", count: 2 },
+      { emoji: "❤", count: 1 },
+    ]);
+    assert.deepEqual(stats.favoriteEmoji.ona, [
+      { emoji: "❤", count: 2 },
+      { emoji: "😊", count: 1 },
+    ]);
+  });
+
   it("handles an empty history", () => {
     const empty = computeStats([]);
     assert.equal(empty.total, 0);
@@ -114,5 +168,8 @@ describe("computeStats", () => {
     assert.deepEqual(empty.adore, { count: 0, first: null });
     assert.deepEqual(empty.bootyCalls, { on: 0, ona: 0 });
     assert.deepEqual(empty.firstDay, []);
+    assert.equal(empty.longestStreak, null);
+    assert.deepEqual(empty.perYear, []);
+    assert.deepEqual(empty.favoriteEmoji, { on: [], ona: [] });
   });
 });
