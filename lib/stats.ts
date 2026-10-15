@@ -3,6 +3,7 @@
 // build time (hence the explicit .ts import paths, which Node needs).
 
 import { belgradeParts, dayKey, logicalDay, logicalDayOf } from "./day.ts";
+import type { Nicknames } from "./nicknames.ts";
 import type { MediaKind, Message, Person } from "./types.ts";
 
 // --- Counting ---
@@ -77,14 +78,19 @@ export type Stats = {
   firstDay: Pick<Message, "ts" | "sender" | "text">[];
   /** Messages with 🚨, 📢 or a similar alarm (once per message, however many). */
   bootyCalls: Record<Person, number>;
+  /** Nicknames we gave each other, by the year they first appeared. */
+  nicknames: Nicknames;
   /** Every "obožavam te", and the first one. */
   adore: { count: number; first: Pick<Message, "ts" | "sender"> | null };
 };
 
 const perPerson = (): Record<Person, number> => ({ on: 0, ona: 0 });
 
-/** One pass over the whole history; input order doesn't matter. */
-export function computeStats(all: readonly Message[]): Stats {
+/**
+ * One pass over the whole history; input order doesn't matter. Nicknames come
+ * from system notices that aren't messages, so the caller passes them in.
+ */
+export function computeStats(all: readonly Message[], nicknames: Nicknames = { on: [], ona: [] }): Stats {
   const messages = perPerson();
   const hearts = perPerson();
   const words = perPerson();
@@ -132,6 +138,7 @@ export function computeStats(all: readonly Message[]): Stats {
     busiestDay: toDayCount(maxEntry(perDay)),
     happiestDay: toDayCount(maxEntry(smilesPerDay)),
     bootyCalls,
+    nicknames,
     adore,
   };
 }

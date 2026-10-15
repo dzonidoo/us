@@ -18,6 +18,7 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { dayKey, logicalDay } from "../lib/day.ts";
+import { nicknameTimeline } from "../lib/nicknames.ts";
 import { computeStats } from "../lib/stats.ts";
 import { isHeartSticker } from "./heart-stickers.mjs";
 import { mediaFile } from "./media-id.mjs";
@@ -66,14 +67,19 @@ function* expand(ts, senderName, text, attachments) {
   for (const [i, media] of attachments.entries()) yield { ts: ts + i, sender, text: i ? "" : text, media };
 }
 
+/** System notices (calls, themes, nicknames, …): kept aside, not shown as messages. */
+const notices = [];
+
 function* facebookExport() {
   for (const f of fs.readdirSync(MESSAGES).filter((f) => /^message_\d+\.json$/.test(f))) {
     for (const m of readJson(path.join(MESSAGES, f)).messages) {
       if (m.is_unsent || m.call_duration !== undefined) continue;
       let text = m.content ? fixMojibake(m.content) : "";
-      // System notices (calls, themes, nicknames, "sent an attachment") are
-      // written in Cyrillic by Facebook; we write in Latin.
-      if (/[Ѐ-ӿ]/.test(text)) continue;
+      // Facebook writes its notices in Cyrillic; we write in Latin.
+      if (/[Ѐ-ӿ]/.test(text)) {
+        notices.push({ ts: m.timestamp_ms, text });
+        continue;
+      }
       if (m.share && !text) text = m.share.link ?? "";
       const attachments = [
         ...(m.photos ?? []).map((p) => photo(p.uri)),
@@ -124,7 +130,8 @@ console.log(`messages: ${messages.length} in ${days.size} day files`);
 
 // --- Stats (same code the app uses) ---
 
-fs.writeFileSync(path.join(OUT, "stats.json"), JSON.stringify(computeStats(messages)));
+const nicknames = nicknameTimeline(notices, Object.keys(SENDERS));
+fs.writeFileSync(path.join(OUT, "stats.json"), JSON.stringify(computeStats(messages, nicknames)));
 console.log("stats: written");
 
 // --- Photos: resize new ones, keeping the original when it's already smaller ---

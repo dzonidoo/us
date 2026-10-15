@@ -302,6 +302,51 @@ function FirstDay({ messages, viewer }: { messages: Stats["firstDay"]; viewer: P
   );
 }
 
+/** Nicknames on a year-by-year timeline: hers, then his, as chips in each person's tint. */
+function Nicknames({ nicknames }: { nicknames: Stats["nicknames"] }) {
+  const people: Person[] = ["ona", "on"];
+  const years = [...new Set(people.flatMap((p) => nicknames[p].map((n) => n.year)))].sort((a, b) => a - b);
+  const tint: Record<Person, string> = { ona: "var(--tint-1)", on: "var(--tint-2)" };
+  return (
+    <Card title="Naši nadimci" className="col-span-2">
+      <div className="-mx-2 mt-3 max-h-96 overflow-y-auto overscroll-contain rounded-2xl bg-background/60 px-3 py-3">
+        <ol>
+          {years.map((year, i) => (
+            <li key={year} className="relative pb-5 pl-6 last:pb-0">
+              {/* the timeline: a line through the years (on to the closing note), a dot on each */}
+              <span className="absolute top-2 bottom-0 left-[5px] w-px bg-border" aria-hidden />
+              <span className="absolute top-1.5 left-0 size-[11px] rounded-full border-2 border-accent bg-card" aria-hidden />
+              <div className="font-display text-[20px] italic leading-none">{year}</div>
+              <div className="mt-2.5 flex flex-col gap-2">
+                {people.map((p) => {
+                  const names = nicknames[p].filter((n) => n.year === year);
+                  if (!names.length) return null;
+                  return (
+                    <div key={p} className="flex items-start gap-2">
+                      <Avatar person={p} size={22} />
+                      <div className="flex flex-wrap gap-1.5">
+                        {names.map((n) => (
+                          <span key={n.name} className="rounded-full px-2.5 py-0.5 text-[13px]" style={{ background: tint[p] }}>
+                            {n.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </li>
+          ))}
+          <li className="relative pl-6">
+            <span className="absolute top-1 left-0.5 size-[7px] rounded-full bg-border" aria-hidden />
+            <p className="text-[12px] text-muted">Noviji nadimci, od sredine 2023., ne beleže se u Facebook bazi.</p>
+          </li>
+        </ol>
+      </div>
+    </Card>
+  );
+}
+
 function DayParts({ parts, busiest }: { parts: Record<DayPart, number>; busiest: DayPart }) {
   const total = PART_ORDER.reduce((s, p) => s + parts[p], 0) || 1;
   return (
@@ -361,6 +406,7 @@ export function StatsPanel({ stats, viewer }: { stats: Stats; viewer: Person }) 
       <CloseCall title="Veća pričalica" values={stats.words} caption="svih reči" />
       {stats.adore.count > 0 && <Adore adore={stats.adore} />}
       {stats.bootyCalls.on + stats.bootyCalls.ona > 0 && <BootyCall calls={stats.bootyCalls} />}
+      {stats.nicknames.on.length + stats.nicknames.ona.length > 0 && <Nicknames nicknames={stats.nicknames} />}
       {stats.firstDay.length > 0 && <FirstDay messages={stats.firstDay} viewer={viewer} />}
     </div>
   );
