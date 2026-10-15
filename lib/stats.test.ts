@@ -98,6 +98,14 @@ describe("computeStats", () => {
     assert.deepEqual(stats.bootyCalls, { on: 1, ona: 0 });
   });
 
+  it("keeps the whole first day, past midnight included", () => {
+    const first = stats.firstDay;
+    assert.equal(first.length, 6); // 1 May 08:00 … 2 May 01:00
+    assert.deepEqual([first[0].sender, first[0].text], ["ona", "Dobro jutro 😊"]);
+    assert.equal(first[3].text, "🏷️"); // the sticker, as an emoji
+    assert.equal(first[5].text, "Laku noć 😂😂");
+  });
+
   it("handles an empty history", () => {
     const empty = computeStats([]);
     assert.equal(empty.total, 0);
@@ -105,5 +113,6 @@ describe("computeStats", () => {
     assert.equal(empty.busiestDay, null);
     assert.deepEqual(empty.adore, { count: 0, first: null });
     assert.deepEqual(empty.bootyCalls, { on: 0, ona: 0 });
+    assert.deepEqual(empty.firstDay, []);
   });
 });

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { porukaLabel } from "@/lib/format";
-import { belgradeParts } from "@/lib/day";
+import { belgradeParts, dayKey, formatLongDate, formatTime, logicalDay } from "@/lib/day";
 import { DAY_PARTS, type DayCount, type DayPart, type Stats } from "@/lib/stats";
 import { PEOPLE, other } from "@/lib/people";
 import type { Person } from "@/lib/types";
@@ -272,6 +272,36 @@ function BootyCall({ calls }: { calls: Record<Person, number> }) {
   );
 }
 
+/** How it started: our whole first day as a small scrollable chat; the viewer's messages on the right. */
+function FirstDay({ messages, viewer }: { messages: Stats["firstDay"]; viewer: Person }) {
+  const day = logicalDay(messages[0].ts);
+  return (
+    <Card title="Prvi dan" className="col-span-2">
+      <p className="mt-1 text-[13px] text-muted">{formatLongDate(dayKey(day), day.year)}</p>
+      <div className="-mx-2 mt-3 max-h-96 overflow-y-auto overscroll-contain rounded-2xl bg-background/60 px-2 py-3">
+        <div className="flex flex-col gap-1.5">
+          {messages.map((m, i) => {
+            const mine = m.sender === viewer;
+            const showTime = i === 0 || m.ts - messages[i - 1].ts >= 10 * 60 * 1000;
+            return (
+              <div key={m.ts} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
+                {showTime && <span className="my-1 self-center text-[11px] text-muted">{formatTime(m.ts)}</span>}
+                <div
+                  className={`max-w-[80%] select-text whitespace-pre-wrap break-words rounded-[18px] px-3.5 py-2 text-[14px] leading-snug ${
+                    mine ? "bg-bubble-me text-bubble-me-text" : "bg-card text-foreground"
+                  }`}
+                >
+                  {m.text}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 function DayParts({ parts, busiest }: { parts: Record<DayPart, number>; busiest: DayPart }) {
   const total = PART_ORDER.reduce((s, p) => s + parts[p], 0) || 1;
   return (
@@ -331,6 +361,7 @@ export function StatsPanel({ stats, viewer }: { stats: Stats; viewer: Person }) 
       <CloseCall title="Veća pričalica" values={stats.words} caption="svih reči" />
       {stats.adore.count > 0 && <Adore adore={stats.adore} />}
       {stats.bootyCalls.on + stats.bootyCalls.ona > 0 && <BootyCall calls={stats.bootyCalls} />}
+      {stats.firstDay.length > 0 && <FirstDay messages={stats.firstDay} viewer={viewer} />}
     </div>
   );
 }

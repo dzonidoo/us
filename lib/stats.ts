@@ -2,8 +2,8 @@
 // mock data, and scripts/prepare-data.mjs runs it over the real history at
 // build time (hence the explicit .ts import paths, which Node needs).
 
-import { belgradeParts, dayKey, logicalDayOf } from "./day.ts";
-import type { Message, Person } from "./types.ts";
+import { belgradeParts, dayKey, logicalDay, logicalDayOf } from "./day.ts";
+import type { MediaKind, Message, Person } from "./types.ts";
 
 // --- Counting ---
 
@@ -73,6 +73,8 @@ export type Stats = {
   busiestDay: DayCount | null;
   /** Logical day with the most smiling/laughing faces. */
   happiestDay: DayCount | null;
+  /** How it started: every message of our first day (06:00 reset). */
+  firstDay: Pick<Message, "ts" | "sender" | "text">[];
   /** Messages with 🚨, 📢 or a similar alarm (once per message, however many). */
   bootyCalls: Record<Person, number>;
   /** Every "obožavam te", and the first one. */
@@ -93,7 +95,8 @@ export function computeStats(all: readonly Message[]): Stats {
   const bootyCalls = perPerson();
   const adore: Stats["adore"] = { count: 0, first: null };
 
-  for (const m of [...all].sort((a, b) => a.ts - b.ts)) {
+  const sorted = [...all].sort((a, b) => a.ts - b.ts);
+  for (const m of sorted) {
     const parts = belgradeParts(m.ts);
     const d = logicalDayOf(parts);
     const day = `${d.year}-${dayKey(d)}`;
@@ -124,12 +127,31 @@ export function computeStats(all: readonly Message[]): Stats {
     words,
     firstOfDay,
     dayParts,
+    firstDay: firstDay(sorted),
     busiestPart: busiest && busiest[1] > 0 ? { part: busiest[0], share: busiest[1] / all.length } : null,
     busiestDay: toDayCount(maxEntry(perDay)),
     happiestDay: toDayCount(maxEntry(smilesPerDay)),
     bootyCalls,
     adore,
   };
+}
+
+const ATTACHMENT_EMOJI: Record<MediaKind, string> = { photo: "📷", video: "🎥", gif: "🎞️", audio: "🎙️", sticker: "🏷️" };
+
+/** All messages of the first logical day, attachments as an emoji (time-ordered input). */
+function firstDay(sorted: readonly Message[]): Stats["firstDay"] {
+  if (!sorted.length) return [];
+  const key = (ts: number) => {
+    const d = logicalDay(ts);
+    return `${d.year}-${dayKey(d)}`;
+  };
+  const first = key(sorted[0].ts);
+  const out: Stats["firstDay"] = [];
+  for (const m of sorted) {
+    if (key(m.ts) !== first) break;
+    out.push({ ts: m.ts, sender: m.sender, text: m.text || ATTACHMENT_EMOJI[m.media?.kind ?? "photo"] });
+  }
+  return out;
 }
 
 /** Entry with the highest value; the earliest one wins a tie. */
