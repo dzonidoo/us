@@ -2,6 +2,7 @@
 
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import type { CryptoMeta } from "@/lib/crypto";
+import { setViewer } from "@/lib/hooks";
 import { loadMeta, restore, unlock } from "@/lib/vault";
 
 type State = { status: "checking" } | { status: "locked"; meta: CryptoMeta } | { status: "open" };
@@ -40,8 +41,11 @@ function PasswordScreen({ meta, onUnlock }: { meta: CryptoMeta; onUnlock: () => 
     if (!password || busy) return;
     setBusy(true);
     setWrong(false);
-    if (await unlock(meta, password)) onUnlock();
-    else {
+    if (await unlock(meta, password)) {
+      // Typing the password starts afresh: pick who's looking next.
+      setViewer(null);
+      onUnlock();
+    } else {
       setWrong(true);
       setBusy(false);
     }
@@ -49,15 +53,13 @@ function PasswordScreen({ meta, onUnlock }: { meta: CryptoMeta; onUnlock: () => 
 
   return (
     <main className="pt-safe pb-safe flex h-full flex-col items-center justify-center px-8">
-      <h1 className="rise font-display text-7xl italic leading-none text-accent">us</h1>
-      <p className="rise mt-3 text-[15px] text-muted [animation-delay:80ms]">naše poruke, na današnji dan</p>
-
-      <form onSubmit={submit} className="rise mt-14 flex w-full max-w-xs flex-col gap-3 [animation-delay:160ms]">
+      <form onSubmit={submit} className="rise flex w-full max-w-xs flex-col gap-3">
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Lozinka"
+          aria-label="Lozinka"
           autoComplete="current-password"
           aria-invalid={wrong}
           className={`h-12 rounded-2xl border bg-card px-4 text-center text-[17px] outline-none transition-colors focus:border-accent ${
