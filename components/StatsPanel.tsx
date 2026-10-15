@@ -49,6 +49,19 @@ function Card({
   );
 }
 
+/** Half card with one big total on a soft gradient. */
+function TotalCard({ title, value, gradient, children }: { title: string; value: number; gradient: string; children: ReactNode }) {
+  return (
+    <section className="rounded-[22px] p-4" style={{ background: gradient }}>
+      <h2 className="text-[12px] font-semibold uppercase tracking-wide text-muted">{title}</h2>
+      <div className="mt-4 flex flex-col items-center pb-1">
+        <div className="font-display text-[34px] italic leading-none tabular-nums">{fmt(value)}</div>
+        <div className="mt-2.5 text-accent">{children}</div>
+      </div>
+    </section>
+  );
+}
+
 /** Avatar ringed in the person's chart color, so it doubles as the legend. */
 function PersonMark({ person, size, muted = false }: { person: Person; size: number; muted?: boolean }) {
   return (
@@ -58,11 +71,11 @@ function PersonMark({ person, size, muted = false }: { person: Person; size: num
   );
 }
 
-/** Avatar + percentage on each side; the viewer is always on the right. */
-function Sides({ pct, viewer, size = 36 }: { pct: Record<Person, number>; viewer: Person; size?: number }) {
+/** Avatar + percentage on each side, `left` first. */
+function Sides({ pct, left, size = 36 }: { pct: Record<Person, number>; left: Person; size?: number }) {
   return (
     <div className="flex items-center justify-between">
-      {[other(viewer), viewer].map((p, i) => (
+      {[left, other(left)].map((p, i) => (
         <div key={p} className={`flex items-center gap-2.5 ${i ? "flex-row-reverse" : ""}`}>
           <PersonMark person={p} size={size} />
           <span className="font-display text-[32px] italic leading-none tabular-nums" aria-label={`${PEOPLE[p].name} ${pct[p]}%`}>
@@ -76,16 +89,18 @@ function Sides({ pct, viewer, size = 36 }: { pct: Record<Person, number>; viewer
 
 function Compare({ values, viewer }: { values: Record<Person, number>; viewer: Person }) {
   const pct = shares(values);
-  const left = other(viewer);
+  // Whoever writes more goes on the left, whoever is viewing.
+  const left: Person = values.on === values.ona ? other(viewer) : values.on > values.ona ? "on" : "ona";
+  const right = other(left);
   return (
     <Card title="Ko više piše" className="col-span-2">
       <div className="mt-3">
-        <Sides pct={pct} viewer={viewer} />
+        <Sides pct={pct} left={left} />
       </div>
       {/* 2px gap between the segments; colors follow the person. */}
       <div className="mt-4 flex h-2.5 gap-0.5" aria-hidden>
         <div className="rounded-full" style={{ width: `${pct[left]}%`, background: COLOR[left] }} />
-        <div className="rounded-full" style={{ width: `${pct[viewer]}%`, background: COLOR[viewer] }} />
+        <div className="rounded-full" style={{ width: `${pct[right]}%`, background: COLOR[right] }} />
       </div>
     </Card>
   );
@@ -99,7 +114,7 @@ function Hearts({ values, viewer }: { values: Record<Person, number>; viewer: Pe
   return (
     <Card title="Ko šalje više srca" className="col-span-2">
       <div className="mt-3">
-        <Sides pct={pct} viewer={viewer} />
+        <Sides pct={pct} left={left} />
       </div>
       <div className="mt-4 flex justify-between" aria-hidden>
         {Array.from({ length: 10 }, (_, i) => (
@@ -288,22 +303,16 @@ function DayParts({ parts, busiest }: { parts: Record<DayPart, number>; busiest:
 export function StatsPanel({ stats, viewer }: { stats: Stats; viewer: Person }) {
   return (
     <div className="rise grid grid-cols-2 gap-3">
-      <section className="col-span-2 rounded-[22px] bg-[linear-gradient(135deg,var(--tint-1),var(--tint-2)_60%,var(--tint-3))] p-5">
-        <h2 className="text-[12px] font-semibold uppercase tracking-wide text-muted">Ukupno</h2>
-        <div className="mt-4 flex items-stretch">
-          <div className="flex flex-1 flex-col items-center">
-            <div className="font-display text-[34px] italic leading-none tabular-nums">{fmt(stats.total)}</div>
-            <div className="mt-2 text-[13px] text-muted">poruka</div>
-          </div>
-          <div className="w-px bg-foreground/10" aria-hidden />
-          <div className="flex flex-1 flex-col items-center">
-            <div className="font-display text-[34px] italic leading-none tabular-nums">{fmt(stats.totalHearts)}</div>
-            <svg viewBox="0 0 24 24" className="mt-2 size-[18px] text-accent" role="img" aria-label="srca">
-              <path fill="currentColor" d={HEART_PATH} />
-            </svg>
-          </div>
-        </div>
-      </section>
+      <TotalCard title="Poruke" value={stats.total} gradient="linear-gradient(135deg, var(--tint-2), var(--tint-1))">
+        <svg viewBox="0 0 24 24" className="size-[18px]" role="img" aria-label="poruka">
+          <path fill="currentColor" d="M5 4h14a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-6.6l-4.7 3.6A.6.6 0 0 1 6.7 21v-3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z" />
+        </svg>
+      </TotalCard>
+      <TotalCard title="Srca" value={stats.totalHearts} gradient="linear-gradient(135deg, var(--tint-1), var(--tint-3))">
+        <svg viewBox="0 0 24 24" className="size-[18px]" role="img" aria-label="srca">
+          <path fill="currentColor" d={HEART_PATH} />
+        </svg>
+      </TotalCard>
 
       <Compare values={stats.messages} viewer={viewer} />
       <Hearts values={stats.hearts} viewer={viewer} />
