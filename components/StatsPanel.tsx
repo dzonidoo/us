@@ -277,12 +277,11 @@ function PerYear({ years }: { years: Stats["perYear"] }) {
         <span className="font-display text-[28px] italic leading-none">{current.year}</span>
         <span className="text-[15px] font-semibold tabular-nums">{porukaLabel(current.count)}</span>
       </div>
-      <div className="mt-4 flex h-32 items-end gap-1.5" role="list">
+      <div className="mt-4 flex h-32 items-end gap-1.5" role="group" aria-label="Poruke po godinama">
         {years.map((y) => (
           <button
             key={y.year}
             type="button"
-            role="listitem"
             onClick={() => setSelected(y.year)}
             aria-label={`${y.year}: ${porukaLabel(y.count)}`}
             aria-pressed={y.year === selected}

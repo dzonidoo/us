@@ -7,6 +7,7 @@ import { useDay, useSearch, useToday } from "@/lib/hooks";
 import { PEOPLE, other } from "@/lib/people";
 import type { MediaKind, Message, Person } from "@/lib/types";
 import { Avatar, ChevronLeft } from "./app-ui";
+import { SecureImage } from "./SecureImage";
 import { useEdgeSwipeBack } from "./useEdgeSwipeBack";
 import { useRequireViewer } from "./useRequireViewer";
 
@@ -57,9 +58,8 @@ const ICON_PATHS: Record<MediaKind, ReactNode> = {
 
 /** A shared photo, or a placeholder for anything we don't show. */
 function Attachment({ media, mine }: { media: NonNullable<Message["media"]>; mine: boolean }) {
-  if (media.src) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={media.src} alt="" loading="lazy" className="max-h-80 w-56 rounded-2xl bg-card object-cover" />;
+  if (media.kind === "photo" && media.id) {
+    return <SecureImage id={media.id} className="max-h-80 w-56 rounded-2xl bg-card object-cover" />;
   }
   const isPhoto = media.kind === "photo";
   return (

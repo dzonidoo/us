@@ -1,29 +1,22 @@
-// Loading the prepared data (see scripts/prepare-data.mjs) in the app, with
-// mock data as the fallback wherever the real data isn't available.
+// Our messages and stats for the app: decrypted from public/data/ once
+// unlocked, or mock data when there's no encrypted data (e.g. a fresh clone).
 
 import { dayKey, logicalDay } from "./day";
 import { MOCK_MESSAGES } from "./mock-messages";
 import { computeStats, type Stats } from "./stats";
 import type { MediaKind, Message } from "./types";
+import { fetchDecryptedJson, isUnlocked } from "./vault";
 
-const DATA_URL = "/private";
-
-/** Fetch prepared JSON, or the fallback when it's missing (e.g. not deployed yet). */
-async function fetchJson<T>(path: string, fallback: () => T): Promise<T> {
-  try {
-    const res = await fetch(`${DATA_URL}/${path}`);
-    if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
-    return (await res.json()) as T;
-  } catch {
-    return fallback();
-  }
+/** The decrypted file, or the mock fallback when the data isn't unlocked. */
+async function load<T>(path: string, fallback: () => T): Promise<T> {
+  return isUnlocked() ? fetchDecryptedJson<T>(path) : fallback();
 }
 
 let statsPromise: Promise<Stats> | null = null;
 
 /** Whole-history stats, computed at build time. */
 export function loadStats(): Promise<Stats> {
-  statsPromise ??= fetchJson("stats.json", () => computeStats(MOCK_MESSAGES));
+  statsPromise ??= load("stats.bin", () => computeStats(MOCK_MESSAGES));
   return statsPromise;
 }
 
@@ -33,13 +26,13 @@ type RawMessage = [number, 0 | 1, string, [MediaKind, (string | null)?]?];
 const dayCache = new Map<string, Promise<Map<number, Message[]>>>();
 
 /**
- * Our messages on an "MM-DD" day, by year (newest first), from the prepared
- * day file. Falls back to mock data where the real data isn't available.
+ * Our messages on an "MM-DD" day, by year (newest first). Falls back to mock
+ * data when the real data isn't unlocked.
  */
 export function loadDay(key: string): Promise<Map<number, Message[]>> {
   let day = dayCache.get(key);
   if (!day) {
-    day = fetchJson<Record<string, RawMessage[]> | null>(`days/${key}.json`, () => null).then((byYear) => {
+    day = load<Record<string, RawMessage[]> | null>(`days/${key}.bin`, () => null).then((byYear) => {
       if (!byYear) return messagesForDay(MOCK_MESSAGES, key);
       const years = Object.keys(byYear).map(Number).sort((a, b) => b - a);
       return new Map(years.map((y) => [y, byYear[y].map(toMessage)]));
@@ -53,7 +46,7 @@ function toMessage([ts, sender, text, media]: RawMessage): Message {
   const msg: Message = { ts, sender: sender === 0 ? "on" : "ona", text };
   if (media) {
     const [kind, id] = media;
-    msg.media = { kind, src: kind === "photo" && id ? `${DATA_URL}/media/${id}.jpg` : null };
+    msg.media = { kind, id: kind === "photo" ? (id ?? null) : null };
   }
   return msg;
 }

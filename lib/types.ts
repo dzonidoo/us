@@ -5,10 +5,11 @@ export type Message = {
   ts: number;
   sender: Person;
   text: string;
-  /** An attachment. Only photos are shown; `src: null` means it isn't available. */
+  /** An attachment. Only photos are shown; a photo with no `id` isn't available. */
   media?: {
     kind: MediaKind;
-    src?: string | null;
+    /** Id of the (encrypted) photo in public/data/media/. */
+    id?: string | null;
     /** A sticker showing a heart: counts as a sent heart. */
     heart?: boolean;
   };

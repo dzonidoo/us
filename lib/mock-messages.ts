@@ -15,7 +15,7 @@ const CONVERSATIONS: Line[][] = [
     [9, 47, "ona", "Može! U 17h kod parka?"],
     [13, 20, "ona", "Šta jedeš za ručak?"],
     [13, 22, "on", "Ćevape, naravno 😄"],
-    [13, 23, "on", "", { media: { kind: "photo", src: null } }],
+    [13, 23, "on", "", { media: { kind: "photo", id: null } }],
     [22, 10, "ona", "Hvala za danas ❤️"],
     [23, 40, "on", "Hvala tebi, bilo je savršeno"],
     [24, 35, "ona", "Ne mogu da zaspim 🙈"],

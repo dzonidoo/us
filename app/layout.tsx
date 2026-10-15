@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bodoni_Moda } from "next/font/google";
+import { Unlock } from "@/components/Unlock";
 import "./globals.css";
 
 const bodoni = Bodoni_Moda({
@@ -37,7 +38,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="sr" className={`${bodoni.variable} h-full antialiased`}>
       <body className="font-sans">
         <div className="relative mx-auto h-dvh w-full max-w-md overflow-hidden">
-          {children}
+          <Unlock>{children}</Unlock>
         </div>
       </body>
     </html>

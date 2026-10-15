@@ -9,7 +9,8 @@
     "lint": "eslint",
     "data:media": "node scripts/import-media.mjs",
     "data": "node --experimental-strip-types --no-warnings scripts/prepare-data.mjs",
-    "test": "node --experimental-strip-types --no-warnings --test 'lib/**/*.test.ts'"
+    "test": "node --experimental-strip-types --no-warnings --test 'lib/**/*.test.ts'",
+    "encrypt": "node --experimental-strip-types --no-warnings scripts/encrypt-data.mjs"
   },
   "dependencies": {
     "next": "16.4.1",
