@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { porukaLabel } from "@/lib/format";
-import { DAY_PARTS, type DayPart, type Stats } from "@/lib/messages";
+import { belgradeParts } from "@/lib/day";
+import { DAY_PARTS, type DayCount, type DayPart, type Stats } from "@/lib/stats";
 import { PEOPLE, other } from "@/lib/people";
 import type { Person } from "@/lib/types";
 import { Avatar } from "./app-ui";
@@ -25,19 +26,33 @@ function shares(values: Record<Person, number>): Record<Person, number> {
   return { on, ona: 100 - on };
 }
 
-function Card({ title, children, className = "" }: { title: string; children: ReactNode; className?: string }) {
+function Card({
+  title,
+  icon,
+  children,
+  className = "",
+}: {
+  title: string;
+  /** Shown before the title, e.g. the avatar of who it's about. */
+  icon?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <section className={`rounded-[22px] bg-card p-4 shadow-[0_8px_24px_-18px_rgb(74_43_63/0.45)] ${className}`}>
-      <h2 className="text-[12px] font-semibold uppercase tracking-wide text-muted">{title}</h2>
+      <h2 className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide text-muted">
+        {icon}
+        {title}
+      </h2>
       {children}
     </section>
   );
 }
 
 /** Avatar ringed in the person's chart color, so it doubles as the legend. */
-function PersonMark({ person, size }: { person: Person; size: number }) {
+function PersonMark({ person, size, muted = false }: { person: Person; size: number; muted?: boolean }) {
   return (
-    <span className="inline-flex rounded-full p-1" style={{ background: COLOR[person] }}>
+    <span className="inline-flex rounded-full p-1" style={{ background: muted ? "var(--muted)" : COLOR[person] }}>
       <Avatar person={person} size={size} />
     </span>
   );
@@ -97,11 +112,13 @@ function Hearts({ values, viewer }: { values: Record<Person, number>; viewer: Pe
   );
 }
 
-function Starter({ values }: { values: Record<Person, number> }) {
+/** Half card: whoever has more of something, with their share. */
+function Winner({ title, values, caption }: { title: string; values: Record<Person, number>; caption: string }) {
   const pct = shares(values);
-  const winner: Person = pct.on >= pct.ona ? "on" : "ona";
+  // Decide on the raw counts: rounded shares can tie (50% / 50%) when one is ahead.
+  const winner: Person = values.on >= values.ona ? "on" : "ona";
   return (
-    <Card title="Ko prvi piše">
+    <Card title={title}>
       <div className="mt-5 flex flex-col items-center text-center">
         <div className="relative">
           <PersonMark person={winner} size={56} />
@@ -110,27 +127,131 @@ function Starter({ values }: { values: Record<Person, number> }) {
           </span>
         </div>
         <div className="mt-3 font-display text-[30px] italic leading-none tabular-nums">{pct[winner]}%</div>
-        <div className="mt-1.5 text-[12px] text-muted">započne razgovor</div>
+        <div className="mt-1.5 text-[12px] text-muted">{caption}</div>
       </div>
     </Card>
   );
 }
 
-function RecordDay({ day }: { day: NonNullable<Stats["busiestDay"]> }) {
-  const weekday = WEEKDAYS[new Date(Date.UTC(day.year, day.month - 1, day.day)).getUTCDay()];
+/**
+ * Half card for a near tie: both of us side by side, the leader first and in
+ * their color, the other in grey. Exact shares (two decimals), since whole
+ * percents would round both to 50%.
+ */
+function CloseCall({ title, values, caption }: { title: string; values: Record<Person, number>; caption: string }) {
+  const total = values.on + values.ona;
+  const first: Person = values.on >= values.ona ? "on" : "ona";
+  const order = [first, other(first)];
+  const leads = values[first] > values[order[1]];
+  const pct = (p: Person) =>
+    `${(total ? (values[p] / total) * 100 : 50).toLocaleString("sr-RS", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
   return (
-    <Card title="Rekordan dan">
-      <div className="mt-4 flex flex-col items-center text-center">
-        {/* Tear-off calendar page */}
-        <div className="w-16 overflow-hidden rounded-xl bg-background ring-1 ring-border">
-          <div className="bg-accent py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-            {MONTHS_SHORT[day.month - 1]}
+    <Card title={title}>
+      {/* One grid so the avatars share a row and the percents share a baseline. */}
+      <div className="mt-5 grid grid-cols-2 items-baseline justify-items-center gap-x-2 gap-y-2.5">
+        {order.map((p, i) => (
+          <div key={p} className="relative">
+            <PersonMark person={p} size={44} muted={!(i === 0 && leads)} />
+            {i === 0 && leads && (
+              <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-lg" aria-hidden>
+                👑
+              </span>
+            )}
           </div>
-          <div className="font-display text-[28px] italic leading-[1.15]">{day.day}</div>
-          <div className="pb-1 text-[10px] text-muted">{day.year}</div>
+        ))}
+        {order.map((p, i) => {
+          const highlighted = i === 0 && leads;
+          return (
+            <div
+              key={p}
+              className={`font-display italic leading-none tabular-nums ${highlighted ? "text-[20px]" : "text-[15px]"}`}
+              style={{ color: highlighted ? COLOR[p] : "var(--muted)" }}
+            >
+              {pct(p)}
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-2 text-center text-[12px] text-muted">{caption}</div>
+    </Card>
+  );
+}
+
+/** Tear-off calendar page. */
+function CalendarLeaf({ day }: { day: DayCount }) {
+  return (
+    <div className="w-16 shrink-0 overflow-hidden rounded-xl bg-background text-center ring-1 ring-border">
+      <div className="bg-accent py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+        {MONTHS_SHORT[day.month - 1]}
+      </div>
+      <div className="font-display text-[28px] italic leading-[1.15]">{day.day}</div>
+      <div className="pb-1 text-[10px] text-muted">{day.year}</div>
+    </div>
+  );
+}
+
+function weekdayOf(day: DayCount) {
+  return WEEKDAYS[new Date(Date.UTC(day.year, day.month - 1, day.day)).getUTCDay()];
+}
+
+/** A notable day: calendar page, a count under it, and the weekday. */
+function DayCard({ title, day, label, className = "" }: { title: string; day: DayCount; label: string; className?: string }) {
+  return (
+    <Card title={title} className={className}>
+      <div className="mt-4 flex flex-col items-center text-center">
+        <CalendarLeaf day={day} />
+        <div className="mt-2.5 text-[15px] font-semibold">{label}</div>
+        <div className="text-[12px] text-muted">{weekdayOf(day)}</div>
+      </div>
+    </Card>
+  );
+}
+
+/** "1 put", "14 puta". */
+const putaLabel = (n: number) => (n % 10 === 1 && n % 100 !== 11 ? "put" : "puta");
+
+function Adore({ adore }: { adore: Stats["adore"] }) {
+  const first = adore.first && belgradeParts(adore.first.ts);
+  return (
+    <Card
+      title="Obožavam te"
+      icon={adore.first && <PersonMark person={adore.first.sender} size={24} />}
+      className="col-span-2"
+    >
+      <div className="mt-3 flex items-center">
+        <div className="flex-1 text-center">
+          <div className="font-display text-[44px] italic leading-none tabular-nums">{fmt(adore.count)}</div>
+          <div className="mt-2 text-[13px] text-muted">{putaLabel(adore.count)} napisano</div>
         </div>
-        <div className="mt-2.5 text-[15px] font-semibold">{porukaLabel(day.count)}</div>
-        <div className="text-[12px] text-muted">{weekday}</div>
+        {adore.first && first && (
+          <>
+            <div className="h-16 w-px bg-border" aria-hidden />
+            <div className="flex flex-1 flex-col items-center text-center">
+              <div className="text-[15px] font-semibold">
+                {first.day}. {MONTHS_SHORT[first.month - 1]} {first.year}.
+              </div>
+              <div className="text-[12px] text-muted">prvi put</div>
+            </div>
+          </>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function BootyCall({ calls }: { calls: Record<Person, number> }) {
+  const total = calls.on + calls.ona;
+  const caller: Person = calls.on >= calls.ona ? "on" : "ona";
+  return (
+    <Card title="Čuveni alarm · Booty call" icon={<PersonMark person={caller} size={24} />} className="col-span-2">
+      <div className="mt-3 flex items-center justify-center gap-4">
+        <span className="text-[44px] leading-none" aria-hidden>
+          🚨
+        </span>
+        <div>
+          <div className="font-display text-[44px] italic leading-none tabular-nums">{fmt(total)}</div>
+          <div className="mt-1 text-[13px] text-muted">{putaLabel(total)} upotrebljen</div>
+        </div>
       </div>
     </Card>
   );
@@ -185,9 +306,21 @@ export function StatsPanel({ stats, viewer }: { stats: Stats; viewer: Person }) 
 
       <Compare values={stats.messages} viewer={viewer} />
       <Hearts values={stats.hearts} viewer={viewer} />
-      <Starter values={stats.conversationsStarted} />
-      {stats.busiestDay && <RecordDay day={stats.busiestDay} />}
+      <Winner title="Ko prvi piše" values={stats.firstOfDay} caption="dana prvi napiše" />
+      {stats.busiestDay && (
+        <DayCard title="Rekordan dan" day={stats.busiestDay} label={porukaLabel(stats.busiestDay.count)} />
+      )}
       {stats.busiestPart && <DayParts parts={stats.dayParts} busiest={stats.busiestPart.part} />}
+      {stats.happiestDay && (
+        <DayCard
+          title="Najsrećniji dan"
+          day={stats.happiestDay}
+          label={`${fmt(stats.happiestDay.count)} 😂 emojija`}
+        />
+      )}
+      <CloseCall title="Veća pričalica" values={stats.words} caption="svih reči" />
+      {stats.adore.count > 0 && <Adore adore={stats.adore} />}
+      {stats.bootyCalls.on + stats.bootyCalls.ona > 0 && <BootyCall calls={stats.bootyCalls} />}
     </div>
   );
 }

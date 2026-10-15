@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "data:media": "node scripts/import-media.mjs",
+    "data": "node --experimental-strip-types --no-warnings scripts/prepare-data.mjs",
+    "test": "node --experimental-strip-types --no-warnings --test 'lib/**/*.test.ts'"
   },
   "dependencies": {
     "next": "16.4.1",

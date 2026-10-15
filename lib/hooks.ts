@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { parseDayKey, todayKey } from "./day";
-import { getAllMessages } from "./messages";
+import { loadDay, loadStats } from "./messages";
+import type { Stats } from "./stats";
 import type { Message, Person } from "./types";
 
 const VIEWER_KEY = "us:viewer";
@@ -70,16 +71,33 @@ export function useSearch(): string {
   );
 }
 
-export function useMessages(): Message[] | null {
-  const [messages, setMessages] = useState<Message[] | null>(null);
+/** Whole-history stats; `null` while loading. */
+export function useStats(): Stats | null {
+  const [stats, setStats] = useState<Stats | null>(null);
   useEffect(() => {
     let active = true;
-    getAllMessages().then((all) => {
-      if (active) setMessages(all);
+    loadStats().then((s) => {
+      if (active) setStats(s);
     });
     return () => {
       active = false;
     };
   }, []);
-  return messages;
+  return stats;
+}
+
+/** Our messages on an "MM-DD" day, by year; `null` while loading. */
+export function useDay(key: string | null): Map<number, Message[]> | null {
+  const [day, setDay] = useState<{ key: string; byYear: Map<number, Message[]> } | null>(null);
+  useEffect(() => {
+    if (!key) return;
+    let active = true;
+    loadDay(key).then((byYear) => {
+      if (active) setDay({ key, byYear });
+    });
+    return () => {
+      active = false;
+    };
+  }, [key]);
+  return day && day.key === key ? day.byYear : null;
 }

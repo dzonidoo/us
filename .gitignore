@@ -45,3 +45,6 @@ next-env.d.ts
 
 # original avatar sources (the app uses the resized ones in public/avatars)
 /app/avatars/
+
+# real messages and photos prepared for the app; never committed unencrypted
+/public/private/

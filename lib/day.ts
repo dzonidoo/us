@@ -70,7 +70,11 @@ export type LogicalDay = { year: number; month: number; day: number };
 
 /** The day a moment belongs to, with days starting at 06:00. */
 export function logicalDay(ts: number): LogicalDay {
-  const p = belgradeParts(ts);
+  return logicalDayOf(belgradeParts(ts));
+}
+
+/** Same as `logicalDay`, for callers that already have the Belgrade parts. */
+export function logicalDayOf(p: DateParts): LogicalDay {
   if (p.hour >= DAY_START_HOUR) {
     return { year: p.year, month: p.month, day: p.day };
   }

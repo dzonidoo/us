@@ -4,8 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { dailyYearTints } from "@/lib/colors";
 import { formatDayKey, logicalDay } from "@/lib/day";
-import { setViewer, useMessages, useSearch, useToday } from "@/lib/hooks";
-import { computeStats, messagesForDay } from "@/lib/messages";
+import { setViewer, useDay, useSearch, useStats, useToday } from "@/lib/hooks";
 import {
   Avatar,
   CalendarIcon,
@@ -30,14 +29,10 @@ export function HomeScreen() {
   const viewer = useRequireViewer();
   const today = useToday();
   const search = useSearch();
-  const messages = useMessages();
   const [tab, setTab] = useState<Tab>("godine");
 
-  const byYear = useMemo(
-    () => (messages && today ? messagesForDay(messages, today) : null),
-    [messages, today],
-  );
-  const stats = useMemo(() => (messages ? computeStats(messages) : null), [messages]);
+  const byYear = useDay(today);
+  const stats = useStats();
   const [currentYear] = useState(() => logicalDay(Date.now()).year);
   // Reshuffled every day at 06:00 (when `today` changes), same on both phones.
   const tints = useMemo(

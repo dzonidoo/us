@@ -5,7 +5,7 @@ import type { Message, Person } from "./types";
 // Hours >= 24 are past midnight (next calendar day) and must still land on
 // the same logical day; 06:30 is the first moment of a new day.
 
-type Line = [hour: number, minute: number, sender: Person, text: string];
+type Line = [hour: number, minute: number, sender: Person, text: string, extra?: Pick<Message, "media">];
 
 const CONVERSATIONS: Line[][] = [
   [
@@ -15,6 +15,7 @@ const CONVERSATIONS: Line[][] = [
     [9, 47, "ona", "Može! U 17h kod parka?"],
     [13, 20, "ona", "Šta jedeš za ručak?"],
     [13, 22, "on", "Ćevape, naravno 😄"],
+    [13, 23, "on", "", { media: { kind: "photo", src: null } }],
     [22, 10, "ona", "Hvala za danas ❤️"],
     [23, 40, "on", "Hvala tebi, bilo je savršeno"],
     [24, 35, "ona", "Ne mogu da zaspim 🙈"],
@@ -71,8 +72,8 @@ function build(): Message[] {
   for (const { day, years } of SCHEDULE) {
     for (const year of years) {
       const lines = CONVERSATIONS[i++ % CONVERSATIONS.length];
-      for (const [hour, minute, sender, text] of lines) {
-        messages.push({ ts: belgradeTime(year, 10, day, hour, minute), sender, text });
+      for (const [hour, minute, sender, text, extra] of lines) {
+        messages.push({ ts: belgradeTime(year, 10, day, hour, minute), sender, text, ...extra });
       }
     }
   }

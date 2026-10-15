@@ -1,4 +1,4 @@
-import type { DayPart } from "@/lib/messages";
+import type { DayPart } from "@/lib/stats";
 
 const STROKE = {
   fill: "none",
