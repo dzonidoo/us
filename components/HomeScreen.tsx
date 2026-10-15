@@ -8,8 +8,8 @@ import { setViewer, useDay, useSearch, useStats, useToday } from "@/lib/hooks";
 import {
   Avatar,
   CalendarIcon,
-  ChartIcon,
   LargeTitleScreen,
+  SparklesIcon,
   TAB_BAR_INSET,
   TabBar,
   type TabItem,
@@ -18,18 +18,18 @@ import { StatsPanel } from "./StatsPanel";
 import { useRequireViewer } from "./useRequireViewer";
 import { YearCard } from "./YearCard";
 
-type Tab = "godine" | "statistika";
+type Tab = "vremeplov" | "funfact";
 
 const TABS: TabItem<Tab>[] = [
-  { id: "godine", label: "Godine", icon: <CalendarIcon /> },
-  { id: "statistika", label: "Statistika", icon: <ChartIcon /> },
+  { id: "vremeplov", label: "Vremeplov", icon: <CalendarIcon /> },
+  { id: "funfact", label: "Fun fact", icon: <SparklesIcon /> },
 ];
 
 export function HomeScreen() {
   const viewer = useRequireViewer();
   const today = useToday();
   const search = useSearch();
-  const [tab, setTab] = useState<Tab>("godine");
+  const [tab, setTab] = useState<Tab>("vremeplov");
 
   const byYear = useDay(today);
   const stats = useStats();
@@ -59,15 +59,15 @@ export function HomeScreen() {
       {/* key: each tab is its own screen with its own scroll position */}
       <LargeTitleScreen
         key={tab}
-        eyebrow={tab === "godine" ? "Na današnji dan" : undefined}
-        title={tab === "godine" ? formatDayKey(today) : "Statistika"}
+        eyebrow={tab === "vremeplov" ? "Na današnji dan" : undefined}
+        title={tab === "vremeplov" ? formatDayKey(today) : "Fun fact"}
         navLeft={navLeft}
         navRight={navRight}
         bottomInset={TAB_BAR_INSET}
       >
         {!byYear || !stats ? (
           <p className="mt-10 text-center text-muted">Učitavam…</p>
-        ) : tab === "godine" ? (
+        ) : tab === "vremeplov" ? (
           byYear.size === 0 ? (
             <p className="mt-16 text-center text-[15px] text-muted">Ovog dana se nismo dopisivali.</p>
           ) : (

@@ -159,6 +159,7 @@ export function TabBar<T extends string>({
 /** Height the floating tab bar covers, so scroll content can clear it. */
 export const TAB_BAR_INSET = 92;
 
+/** Calendar with a heart: our days. */
 export function CalendarIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" className="size-full">
@@ -169,10 +170,12 @@ export function CalendarIcon() {
   );
 }
 
-export function ChartIcon() {
+/** Sparkles, for the fun facts. */
+export function SparklesIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" className="size-full">
-      <path d="M5 20V12M10 20V5M15 20v-6M20 20V9" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinejoin="round" className="size-full">
+      <path d="M10 3.5c.6 3.8 2.2 5.4 6 6-3.8.6-5.4 2.2-6 6-.6-3.8-2.2-5.4-6-6 3.8-.6 5.4-2.2 6-6Z" />
+      <path d="M18 14c.3 1.9 1.1 2.7 3 3-1.9.3-2.7 1.1-3 3-.3-1.9-1.1-2.7-3-3 1.9-.3 2.7-1.1 3-3Z" />
     </svg>
   );
 }

@@ -308,10 +308,10 @@ function Nicknames({ nicknames }: { nicknames: Stats["nicknames"] }) {
   const years = [...new Set(people.flatMap((p) => nicknames[p].map((n) => n.year)))].sort((a, b) => a - b);
   const tint: Record<Person, string> = { ona: "var(--tint-1)", on: "var(--tint-2)" };
   return (
-    <Card title="Naši nadimci" className="col-span-2">
+    <Card title="Nadimci" className="col-span-2">
       <div className="-mx-2 mt-3 max-h-96 overflow-y-auto overscroll-contain rounded-2xl bg-background/60 px-3 py-3">
         <ol>
-          {years.map((year, i) => (
+          {years.map((year) => (
             <li key={year} className="relative pb-5 pl-6 last:pb-0">
               {/* the timeline: a line through the years (on to the closing note), a dot on each */}
               <span className="absolute top-2 bottom-0 left-[5px] w-px bg-border" aria-hidden />
@@ -398,7 +398,7 @@ export function StatsPanel({ stats, viewer }: { stats: Stats; viewer: Person }) 
       {stats.busiestPart && <DayParts parts={stats.dayParts} busiest={stats.busiestPart.part} />}
       {stats.happiestDay && (
         <DayCard
-          title="Najsrećniji dan"
+          title="Najviše smeha"
           day={stats.happiestDay}
           label={`${fmt(stats.happiestDay.count)} 😂 emojija`}
         />
