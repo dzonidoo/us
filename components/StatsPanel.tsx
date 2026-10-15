@@ -290,14 +290,15 @@ export function StatsPanel({ stats, viewer }: { stats: Stats; viewer: Person }) 
     <div className="rise grid grid-cols-2 gap-3">
       <section className="col-span-2 rounded-[22px] bg-[linear-gradient(135deg,var(--tint-1),var(--tint-2)_60%,var(--tint-3))] p-5">
         <h2 className="text-[12px] font-semibold uppercase tracking-wide text-muted">Ukupno</h2>
-        <div className="mt-3 grid grid-cols-2 text-center">
-          <div>
-            <div className="font-display text-[44px] italic leading-none tabular-nums">{fmt(stats.total)}</div>
+        <div className="mt-4 flex items-stretch">
+          <div className="flex flex-1 flex-col items-center">
+            <div className="font-display text-[34px] italic leading-none tabular-nums">{fmt(stats.total)}</div>
             <div className="mt-2 text-[13px] text-muted">poruka</div>
           </div>
-          <div>
-            <div className="font-display text-[44px] italic leading-none tabular-nums">{fmt(stats.totalHearts)}</div>
-            <svg viewBox="0 0 24 24" className="mx-auto mt-2 size-[18px] text-accent" role="img" aria-label="srca">
+          <div className="w-px bg-foreground/10" aria-hidden />
+          <div className="flex flex-1 flex-col items-center">
+            <div className="font-display text-[34px] italic leading-none tabular-nums">{fmt(stats.totalHearts)}</div>
+            <svg viewBox="0 0 24 24" className="mt-2 size-[18px] text-accent" role="img" aria-label="srca">
               <path fill="currentColor" d={HEART_PATH} />
             </svg>
           </div>
