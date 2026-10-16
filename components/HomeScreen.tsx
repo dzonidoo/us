@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { dailyYearTints } from "@/lib/colors";
 import { formatDayKey, logicalDay } from "@/lib/day";
 import { setViewer, useDay, useSearch, useStats, useToday } from "@/lib/hooks";
+import { isMuted, setMuted, subscribeMuted } from "@/lib/music";
 import {
   Avatar,
   CalendarIcon,
   LargeTitleScreen,
+  SoundIcon,
   SparklesIcon,
   TAB_BAR_INSET,
   TabBar,
@@ -24,6 +26,23 @@ const TABS: TabItem<Tab>[] = [
   { id: "vremeplov", label: "Vremeplov", icon: <CalendarIcon /> },
   { id: "funfact", label: "Fun fact", icon: <SparklesIcon /> },
 ];
+
+function MuteButton() {
+  const muted = useSyncExternalStore(subscribeMuted, isMuted, () => false);
+  return (
+    <button
+      type="button"
+      onClick={() => setMuted(!muted)}
+      aria-label={muted ? "Uključi muziku" : "Isključi muziku"}
+      className="flex size-9 items-center justify-center rounded-full text-muted outline-none transition-transform active:scale-90 focus-visible:ring-2 focus-visible:ring-accent"
+    >
+      {/* "us" is all lowercase, so its visual middle sits a little below the row's: meet it there */}
+      <span className="block translate-y-[3px]">
+        <SoundIcon muted={muted} />
+      </span>
+    </button>
+  );
+}
 
 export function HomeScreen() {
   const viewer = useRequireViewer();
@@ -42,7 +61,12 @@ export function HomeScreen() {
 
   if (!viewer || !today) return null;
 
-  const navLeft = <span className="px-2 font-display text-2xl italic text-accent">us</span>;
+  const navLeft = (
+    <div className="flex items-center">
+      <span className="px-2 font-display text-2xl italic text-accent">us</span>
+      <MuteButton />
+    </div>
+  );
   const navRight = (
     <button
       type="button"

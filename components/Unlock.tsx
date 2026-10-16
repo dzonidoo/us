@@ -3,6 +3,7 @@
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import type { CryptoMeta } from "@/lib/crypto";
 import { setViewer } from "@/lib/hooks";
+import { prime, startMusic } from "@/lib/music";
 import { loadMeta, restore, unlock } from "@/lib/vault";
 
 type State = { status: "checking" } | { status: "locked"; meta: CryptoMeta } | { status: "open" };
@@ -26,9 +27,22 @@ export function Unlock({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  if (state.status === "open") return children;
+  if (state.status === "open") return <MusicOnFirstTap>{children}</MusicOnFirstTap>;
   if (state.status === "checking") return null;
   return <PasswordScreen meta={state.meta} onUnlock={() => setState({ status: "open" })} />;
+}
+
+/** Opened with a remembered key there was no tap yet, so the song starts on the first one. */
+function MusicOnFirstTap({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    const start = () => {
+      prime();
+      void startMusic();
+    };
+    document.addEventListener("pointerdown", start, { once: true });
+    return () => document.removeEventListener("pointerdown", start);
+  }, []);
+  return children;
 }
 
 function PasswordScreen({ meta, onUnlock }: { meta: CryptoMeta; onUnlock: () => void }) {
@@ -39,12 +53,14 @@ function PasswordScreen({ meta, onUnlock }: { meta: CryptoMeta; onUnlock: () => 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!password || busy) return;
+    prime(); // still inside the tap: unlocks sound for when the song is ready
     setBusy(true);
     setWrong(false);
     if (await unlock(meta, password)) {
       // Typing the password starts afresh: pick who's looking next.
       setViewer(null);
       onUnlock();
+      void startMusic();
     } else {
       setWrong(true);
       setBusy(false);
