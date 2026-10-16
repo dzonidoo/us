@@ -590,6 +590,10 @@ export function StatsPanel({ stats, viewer }: { stats: Stats; viewer: Person }) 
       )}
       {stats.nicknames.on.length + stats.nicknames.ona.length > 0 && <Nicknames nicknames={stats.nicknames} />}
       {stats.firstDay.length > 0 && <FirstDay messages={stats.firstDay} viewer={viewer} />}
+      {/* the story isn't over */}
+      <p className="col-span-2 mt-4 mb-2 text-center font-display text-[20px] italic text-muted">
+        to be continued… <span className="not-italic text-accent">♥</span>
+      </p>
     </div>
   );
 }
