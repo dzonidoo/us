@@ -7,7 +7,7 @@
 //   public/data/days/MM-DD.bin     a day's messages
 //   public/data/stats.bin          the stats
 //   public/data/media/<id>.bin     a photo
-//   public/data/music.bin          the background song (from data/music.mp3, if present)
+//   public/data/music.bin          the background song (from data/music.m4a, if present)
 //
 // The salt is kept across runs and unchanged files aren't re-encrypted, so a
 // re-run only touches what changed. `--new-password` re-keys everything.
@@ -44,7 +44,7 @@ const meta = old ?? { salt: toBase64(salt), iterations: ITERATIONS, check: await
 
 // --- Files to encrypt: source -> target ---
 
-const MUSIC = "data/music.mp3";
+const MUSIC = "data/music.m4a";
 
 const jobs = [
   [path.join(IN, "stats.json"), path.join(OUT, "stats.bin")],
