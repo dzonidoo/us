@@ -116,6 +116,8 @@ function Thread({ messages, viewer }: { messages: Message[]; viewer: Person }) {
         const breaksAfter = !next || next.sender !== m.sender || next.ts - m.ts >= TIME_GAP_MS ||
           belgradeParts(next.ts).day !== belgradeParts(m.ts).day;
         const first = showTime || prev.sender !== m.sender;
+        // A gap between blocks (whoever writes changes), the tight spacing within one.
+        const opensBlock = !showTime && prev.sender !== m.sender;
         return (
           <Fragment key={`${m.ts}-${i}`}>
             {crossedMidnight && (
@@ -126,7 +128,9 @@ function Thread({ messages, viewer }: { messages: Message[]; viewer: Person }) {
               </div>
             )}
             {showTime && <div className="mt-5 mb-2 text-center text-[11px] font-medium text-muted">{formatTime(m.ts)}</div>}
-            <Bubble message={m} mine={m.sender === viewer} first={first} last={breaksAfter} />
+            <div className={opensBlock ? "mt-2" : undefined}>
+              <Bubble message={m} mine={m.sender === viewer} first={first} last={breaksAfter} />
+            </div>
           </Fragment>
         );
       })}
