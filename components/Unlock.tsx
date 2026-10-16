@@ -3,7 +3,7 @@
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import type { CryptoMeta } from "@/lib/crypto";
 import { setViewer } from "@/lib/hooks";
-import { prime, startMusic } from "@/lib/music";
+import { prime, startMusic, startOnFirstTap } from "@/lib/music";
 import { loadMeta, restore, unlock } from "@/lib/vault";
 
 type State = { status: "checking" } | { status: "locked"; meta: CryptoMeta } | { status: "open" };
@@ -34,14 +34,7 @@ export function Unlock({ children }: { children: ReactNode }) {
 
 /** Opened with a remembered key there was no tap yet, so the song starts on the first one. */
 function MusicOnFirstTap({ children }: { children: ReactNode }) {
-  useEffect(() => {
-    const start = () => {
-      prime();
-      void startMusic();
-    };
-    document.addEventListener("pointerdown", start, { once: true });
-    return () => document.removeEventListener("pointerdown", start);
-  }, []);
+  useEffect(() => startOnFirstTap(), []);
   return children;
 }
 
