@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { dailyYearTints } from "@/lib/colors";
 import { formatDayKey, logicalDay } from "@/lib/day";
-import { setViewer, useDay, useSearch, useStats, useToday } from "@/lib/hooks";
+import { setViewer, useDay, useSearch, useStats, useToday, useViewer } from "@/lib/hooks";
 import { isMuted, setMuted, subscribeMuted } from "@/lib/music";
 import {
   Avatar,
@@ -17,7 +17,7 @@ import {
   type TabItem,
 } from "./app-ui";
 import { StatsPanel } from "./StatsPanel";
-import { useRequireViewer } from "./useRequireViewer";
+import { ViewerPicker } from "./ViewerPicker";
 import { YearCard } from "./YearCard";
 
 type Tab = "vremeplov" | "funfact";
@@ -45,7 +45,7 @@ function MuteButton() {
 }
 
 export function HomeScreen() {
-  const viewer = useRequireViewer();
+  const viewer = useViewer();
   const today = useToday();
   const search = useSearch();
   const [tab, setTab] = useState<Tab>("vremeplov");
@@ -59,6 +59,9 @@ export function HomeScreen() {
     [byYear, today, currentYear],
   );
 
+  // Picking who's looking happens right here, not on another page: a page
+  // change can reload on iOS, and a reload silences the music.
+  if (viewer === null) return <ViewerPicker />;
   if (!viewer || !today) return null;
 
   const navLeft = (

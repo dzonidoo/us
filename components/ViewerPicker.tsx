@@ -1,23 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { setViewer, useSearch, useViewer } from "@/lib/hooks";
+import { setViewer } from "@/lib/hooks";
 import { PEOPLE } from "@/lib/people";
 import { Avatar } from "./app-ui";
 
+/**
+ * "Who's looking?" Shown in place by HomeScreen while nobody is picked: no page
+ * change, so nothing reloads and the music keeps playing.
+ */
 export function ViewerPicker() {
-  const router = useRouter();
-  const viewer = useViewer();
-  const search = useSearch();
-
-  // Already chosen on this device: go straight in.
-  useEffect(() => {
-    if (viewer) router.replace(`/pocetna${search}`);
-  }, [viewer, router, search]);
-
-  if (viewer !== null) return null;
-
   return (
     <main className="pt-safe pb-safe flex h-full flex-col items-center justify-center px-6">
       <h1 className="rise font-display text-7xl italic leading-none text-accent">us</h1>
