@@ -1,7 +1,17 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { belgradeTime } from "./day.ts";
-import { computeStats, countAdores, countHearts, countSmiles, countWords, dayPartOf, emojisIn, isBootyCall } from "./stats.ts";
+import {
+  computeStats,
+  countAdores,
+  countCharacters,
+  countHearts,
+  countSmiles,
+  countWords,
+  dayPartOf,
+  emojisIn,
+  isBootyCall,
+} from "./stats.ts";
 import type { Message, Person } from "./types.ts";
 
 const msg = (sender: Person, text: string, [y, mo, d, h, mi]: number[]): Message => ({
@@ -51,6 +61,12 @@ describe("counting", () => {
     assert.deepEqual(emojisIn("haha 😂😂 ok 👍🏽 ❤️ ❤"), ["😂", "😂", "👍", "❤", "❤"]);
     assert.deepEqual(emojisIn("❤️‍🔥 👨‍👩‍👧"), ["❤‍🔥", "👨‍👩‍👧"]);
     assert.deepEqual(emojisIn("bez emojija :)"), []);
+  });
+
+  it("counts every character, each emoji as one", () => {
+    assert.equal(countCharacters("Gde si? 😂"), 9); // 6 letters/punctuation, 2 spaces, 1 emoji
+    assert.equal(countCharacters("👍🏽❤️‍🔥"), 2);
+    assert.equal(countCharacters(""), 0);
   });
 
   it("splits the day into parts", () => {

@@ -358,6 +358,75 @@ function FavoriteEmoji({ favorites }: { favorites: Stats["favoriteEmoji"] }) {
   );
 }
 
+// A page of a printed novel, measured on Harry Potter and the Philosopher's
+// Stone (US first edition): 76,944 words on 309 pages.
+const WORDS_PER_PAGE = 76_944 / 309;
+
+/**
+ * Our story as an open book still being written: "roman u porukama" on the
+ * left page; on the right, how long it is so far, in pages (rounded down to the
+ * hundred, with a "+") and words, set like a page of the book. A ribbon marks our place.
+ */
+function Book({ words }: { words: number }) {
+  const pages = Math.floor(words / WORDS_PER_PAGE / 100) * 100;
+  const page = "relative flex flex-1 flex-col items-center justify-center px-3 py-4 text-center";
+  return (
+    <Card title="Da pišemo knjigu" className="col-span-2">
+      <div className="relative mt-4 flex overflow-hidden rounded-xl bg-[var(--paper)] shadow-[0_10px_24px_-14px_rgb(74_43_63/0.5)] ring-1 ring-border">
+        {/* left page */}
+        <div className={`${page} bg-[linear-gradient(to_left,rgb(74_43_63/0.10),transparent_22%)]`}>
+          <div className="font-display text-[20px] italic leading-tight text-accent">
+            roman
+            <br />u porukama
+          </div>
+        </div>
+        {/* the spine */}
+        <div className="w-px bg-foreground/15" aria-hidden />
+        {/* right page: so far */}
+        {/* pr-7 keeps the numbers clear of the ribbon hanging on this page */}
+        <div className={`${page} pr-7 bg-[linear-gradient(to_right,rgb(74_43_63/0.10),transparent_22%)]`}>
+          <div className="font-display text-[28px] italic leading-none text-accent tabular-nums">{fmt(pages)}+</div>
+          <div className="mt-1 text-[13px] text-muted">strana</div>
+          <div className="mt-2 text-[11px] text-muted tabular-nums">{fmt(words)} reči</div>
+        </div>
+        {/* the ribbon, marking our place */}
+        <div className="absolute -top-1 right-3 flex h-12 w-4 items-end justify-center bg-accent pb-1.5 [clip-path:polygon(0_0,100%_0,100%_100%,50%_82%,0_100%)]" aria-hidden>
+          <span className="text-[8px] text-white">♥</span>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// A character in ordinary printed text is about 2.2 mm wide.
+const MM_PER_CHARACTER = 2.2;
+
+/**
+ * The whole chat as one single message: a bubble that runs out of the card and
+ * fades into the distance (starting with our first messages), and how many
+ * kilometers it would stretch (rounded down, with a "+").
+ */
+function OneMessage({ characters, opening }: { characters: number; opening: Stats["firstDay"] }) {
+  const km = Math.floor((characters * MM_PER_CHARACTER) / 1_000_000);
+  const start = opening
+    .slice(0, 12)
+    .map((m) => m.text)
+    .join(" ");
+  return (
+    <Card title="Da je chat jedna poruka" className="col-span-2">
+      <div className="-mr-4 mt-3 overflow-hidden [mask-image:linear-gradient(to_right,#000_35%,transparent_90%)]">
+        <p className="w-max whitespace-nowrap rounded-[16px] rounded-br-md bg-accent-soft px-3 py-1.5 text-[13px] text-accent">
+          {start} …
+        </p>
+      </div>
+      <div className="mt-3 text-center">
+        <span className="font-display text-[34px] italic leading-none text-accent tabular-nums">{fmt(km)}+ km</span>
+        <div className="mt-1 text-[13px] text-muted">dugačka</div>
+      </div>
+    </Card>
+  );
+}
+
 function BootyCall({ calls }: { calls: Record<Person, number> }) {
   const total = calls.on + calls.ona;
   const caller: Person = calls.on >= calls.ona ? "on" : "ona";
@@ -508,6 +577,8 @@ export function StatsPanel({ stats, viewer }: { stats: Stats; viewer: Person }) 
         />
       )}
       <CloseCall title="Veća pričalica" values={stats.words} caption="svih reči" />
+      <Book words={stats.words.on + stats.words.ona} />
+      <OneMessage characters={stats.characters} opening={stats.firstDay} />
       {stats.adore.count > 0 && <Adore adore={stats.adore} />}
       {stats.bootyCalls.on + stats.bootyCalls.ona > 0 && <BootyCall calls={stats.bootyCalls} />}
       {SHOW_UNDECIDED_CARDS && (

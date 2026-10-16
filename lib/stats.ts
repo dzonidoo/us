@@ -38,6 +38,13 @@ const EMOJI_VARIANT_RE = /[\u{1F3FB}-\u{1F3FF}\uFE0F]/gu;
 /** For favourites, these all count as one: laughing (shown as 😂). */
 const SAME_EMOJI: Record<string, string> = { "🤣": "😂", "😁": "😂" };
 
+/** Every character a reader would see: letters, spaces, punctuation, and each emoji as one. */
+export function countCharacters(text: string): number {
+  let n = 0;
+  for (const _ of graphemes.segment(text)) n++;
+  return n;
+}
+
 /** Every emoji in a text, normalized. */
 export function emojisIn(text: string): string[] {
   const out: string[] = [];
@@ -89,6 +96,8 @@ export type Stats = {
   messages: Record<Person, number>;
   hearts: Record<Person, number>;
   words: Record<Person, number>;
+  /** Every character we wrote: letters, spaces, punctuation, emoji (each emoji as one). */
+  characters: number;
   /** Days (06:00 reset) on which each of us sent the first message. */
   firstOfDay: Record<Person, number>;
   dayParts: Record<DayPart, number>;
@@ -123,6 +132,7 @@ export function computeStats(all: readonly Message[], nicknames: Nicknames = { o
   const messages = perPerson();
   const hearts = perPerson();
   const words = perPerson();
+  let characters = 0;
   const firstOfDay = perPerson();
   const dayParts: Record<DayPart, number> = { jutro: 0, dan: 0, vece: 0, noc: 0 };
   const perDay = new Map<string, number>();
@@ -141,6 +151,7 @@ export function computeStats(all: readonly Message[], nicknames: Nicknames = { o
     messages[m.sender]++;
     hearts[m.sender] += countHearts(m.text) + (m.media?.heart ? 1 : 0);
     words[m.sender] += countWords(m.text);
+    characters += countCharacters(m.text);
     dayParts[dayPartOf(parts.hour)]++;
     // Messages are in time order, so the first one we see for a day opens it.
     if (!perDay.has(day)) firstOfDay[m.sender]++;
@@ -167,6 +178,7 @@ export function computeStats(all: readonly Message[], nicknames: Nicknames = { o
     messages,
     hearts,
     words,
+    characters,
     firstOfDay,
     dayParts,
     firstDay: firstDay(sorted),
