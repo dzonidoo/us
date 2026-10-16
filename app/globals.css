@@ -28,7 +28,7 @@
   --year-7: #e6e4fa; /* periwinkle */
   --year-8: #ebdfe1; /* taupe blush */
   --year-9: #f3e0ef; /* mauve */
-  /* Pages of the "book" card: the same cream in light and dark mode. */
+  /* Pages of the "book" card: cream by day, a soft rosy plum by night. */
   --paper: #fffaf2;
   /* Chart colors follow the person, whoever is viewing (validated pair). */
   --on: #8b7ad6;
@@ -62,6 +62,7 @@
     --year-7: #33304f;
     --year-8: #3a3033;
     --year-9: #452c45;
+    --paper: #43303c;
     --on: #8a7ae0;
     --ona: #c9637f;
   }
